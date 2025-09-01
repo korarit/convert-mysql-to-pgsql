@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Converter - MySQL ⇄ PostgreSQL</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .converter-container {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 20px;
+            padding: 40px;
+            align-items: start;
+        }
+
+        .input-section,
+        .output-section {
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 10px;
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .db-icon {
+            width: 24px;
+            height: 24px;
+            display: inline-block;
+            background-size: contain;
+        }
+
+        .mysql-icon {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23f29111"><path d="M16.405 5.501c-.115 0-.193.014-.274.033v.013h.014c.054.104.146.18.214.274.054.107.1.214.154.32l.014-.015c.094-.066.14-.172.14-.333-.04-.047-.046-.094-.08-.14-.04-.067-.126-.1-.18-.153zM5.77 18.695h-.927a50.854 50.854 0 00-.27-4.41h-.008l-1.41 4.41H2.45l-1.4-4.41h-.01a72.892 72.892 0 00-.195 4.41H.085c.055-1.966.192-3.81.41-5.53h1.15l1.335 4.064h.008l1.347-4.064h1.095c.242 1.719.384 3.564.438 5.53zM9.76 18.695h-.927a50.854 50.854 0 00-.27-4.41h-.008l-1.41 4.41H6.44l-1.4-4.41h-.01a72.892 72.892 0 00-.195 4.41h-.756c.055-1.966.192-3.81.41-5.53h1.15l1.335 4.064h.008l1.347-4.064h1.095c.242 1.719.384 3.564.438 5.53z"/></svg>');
+        }
+
+        .postgresql-icon {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23336791"><path d="M23.111 5.266c-.047-.1-.2-.133-.327-.1-.933.233-1.4.6-1.4.6s-.267-.533-.8-1.133c-.533-.6-1.333-1.067-2.333-1.067-1 0-1.8.467-2.333 1.067-.534.6-.8 1.133-.8 1.133s-.467-.367-1.4-.6c-.127-.033-.28 0-.327.1-.047.1 0 .233.133.3.8.4 1.267.867 1.533 1.333.267.467.4.933.4 1.4 0 .467-.133.933-.4 1.4-.266.467-.733.933-1.533 1.333-.133.067-.18.2-.133.3.047.1.2.133.327.1.933-.233 1.4-.6 1.4-.6s.266.533.8 1.133c.533.6 1.333 1.067 2.333 1.067 1 0 1.8-.467 2.333-1.067.534-.6.8-1.133.8-1.133s.467.367 1.4.6c.127.033.28 0 .327-.1.047-.1 0-.233-.133-.3-.8-.4-1.267-.867-1.533-1.333-.267-.467-.4-.933-.4-1.4 0-.467.133-.933.4-1.4.266-.467.733-.933 1.533-1.333.133-.067.18-.2.133-.3z"/></svg>');
+        }
+
+        .format-selector {
+            display: flex;
+            gap: 10px;
+        }
+
+        .format-btn {
+            padding: 8px 16px;
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            background: transparent;
+            color: #3498db;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .format-btn.active {
+            background: #3498db;
+            color: white;
+        }
+
+        .format-btn:hover {
+            background: #3498db;
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        textarea {
+            flex: 1;
+            border: 2px solid #e1e8ed;
+            border-radius: 12px;
+            padding: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: none;
+            outline: none;
+            background: #fafbfc;
+            transition: all 0.3s ease;
+        }
+
+        textarea:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+            background: white;
+        }
+
+        .converter-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            padding: 0 20px;
+        }
+
+        .convert-btn {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.3);
+            position: relative;
+            overflow: hidden;
+            min-width: 120px;
+        }
+
+        .convert-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(231, 76, 60, 0.4);
+        }
+
+        .convert-btn:active {
+            transform: translateY(0);
+        }
+
+        .convert-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .arrow {
+            font-size: 1.8rem;
+            color: #95a5a6;
+            transform: none;
+            transition: all 0.3s ease;
+        }
+
+        .arrow:hover {
+            color: #3498db;
+            transform: scale(1.1);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px 40px;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #3498db;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+
+        .loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
+        }
+
+        .convert-btn.loading .loading {
+            display: block;
+        }
+
+        .convert-btn.loading .btn-text {
+            opacity: 0;
+        }
+
+        .error-message {
+            background: #fff5f5;
+            border: 1px solid #fed7d7;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+            color: #c53030;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .converter-container {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+
+            .converter-arrow {
+                flex-direction: column;
+                transform: none;
+                padding: 20px 0;
+                gap: 20px;
+            }
+
+            .arrow {
+                transform: rotate(90deg);
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Database Converter</h1>
+            <p>แปลง SQL Schema และ Data ระหว่าง MySQL และ PostgreSQL</p>
+        </div>
+
+        <div class="converter-container">
+            <!-- Input Section -->
+            <div class="input-section">
+                <div class="section-header">
+                    <div class="section-title">
+                        <span class="db-icon mysql-icon"></span>
+                        Input
+                    </div>
+                    <div class="format-selector">
+                        <button class="format-btn active" data-from="mysql">MySQL</button>
+                        <button class="format-btn" data-from="postgresql">PostgreSQL</button>
+                    </div>
+                </div>
+                <textarea id="inputSql"
+                    placeholder="วาง SQL dump หรือ schema ของคุณที่นี่...&#10;&#10;ตัวอย่าง MySQL:&#10;CREATE TABLE users (&#10;  id int(11) NOT NULL AUTO_INCREMENT,&#10;  name varchar(255) NOT NULL,&#10;  email varchar(255) UNIQUE,&#10;  created_at datetime DEFAULT CURRENT_TIMESTAMP,&#10;  PRIMARY KEY (id)&#10;);"></textarea>
+                <div class="error-message" id="inputError"></div>
+            </div>
+
+            <!-- Converter Arrow -->
+            <div class="converter-arrow">
+                <div class="arrow">→</div>
+                <button class="convert-btn" id="convertBtn">
+                    <span class="btn-text">แปลง</span>
+                    <div class="loading"></div>
+                </button>
+                <div class="arrow">→</div>
+            </div>
+
+            <!-- Output Section -->
+            <div class="output-section">
+                <div class="section-header">
+                    <div class="section-title">
+                        <span class="db-icon postgresql-icon"></span>
+                        Output
+                    </div>
+                    <div class="format-selector">
+                        <button class="format-btn" data-to="mysql">MySQL</button>
+                        <button class="format-btn active" data-to="postgresql">PostgreSQL</button>
+                    </div>
+                </div>
+                <textarea id="outputSql" placeholder="ผลลัพธ์จะปรากฏที่นี่..." readonly></textarea>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-number" id="tableCount">0</div>
+                <div class="stat-label">Tables</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="columnCount">0</div>
+                <div class="stat-label">Columns</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="indexCount">0</div>
+                <div class="stat-label">Indexes</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="constraintCount">0</div>
+                <div class="stat-label">Constraints</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class DatabaseConverter {
+            constructor() {
+                this.fromFormat = 'mysql';
+                this.toFormat = 'postgresql';
+                this.stats = {
+                    tables: 0,
+                    columns: 0,
+                    indexes: 0,
+                    constraints: 0
+                };
+                this.initializeEventListeners();
+            }
+
+            initializeEventListeners() {
+                // Format selector buttons
+                document.querySelectorAll('.format-btn[data-from]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.format-btn[data-from]').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.fromFormat = btn.dataset.from;
+                        this.updateToFormat();
+                    });
+                });
+
+                document.querySelectorAll('.format-btn[data-to]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.format-btn[data-to]').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.toFormat = btn.dataset.to;
+                    });
+                });
+
+                // Convert button
+                document.getElementById('convertBtn').addEventListener('click', () => {
+                    this.convert();
+                });
+
+                // Input textarea
+                document.getElementById('inputSql').addEventListener('input', () => {
+                    this.hideError();
+                });
+            }
+
+            updateToFormat() {
+                const toFormat = this.fromFormat === 'mysql' ? 'postgresql' : 'mysql';
+                document.querySelectorAll('.format-btn[data-to]').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.to === toFormat);
+                });
+                this.toFormat = toFormat;
+            }
+
+            async convert() {
+                const inputSql = document.getElementById('inputSql').value.trim();
+                if (!inputSql) {
+                    this.showError('กรุณาใส่ SQL ที่ต้องการแปลง');
+                    return;
+                }
+
+                this.showLoading(true);
+                this.hideError();
+
+                try {
+                    let result;
+                    if (this.fromFormat === 'mysql' && this.toFormat === 'postgresql') {
+                        result = this.convertMySQLToPostgreSQL(inputSql);
+                    } else if (this.fromFormat === 'postgresql' && this.toFormat === 'mysql') {
+                        result = this.convertPostgreSQLToMySQL(inputSql);
+                    } else {
+                        throw new Error('Conversion format not supported');
+                    }
+
+                    document.getElementById('outputSql').value = result;
+                    this.updateStats();
+                } catch (error) {
+                    this.showError('เกิดข้อผิดพลาด: ' + error.message);
+                    console.error(error);
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+
+            convertMySQLToPostgreSQL(sql) {
+                this.resetStats();
+                let output = [];
+                let lines = sql.split('\n');
+                let currentTable = null;
+                let enumTypes = [];
+                let sequences = [];
+                let foreignKeys = [];
+                let indexes = [];
+
+                // Header
+                output.push('-- Converted by Database Converter');
+                output.push('START TRANSACTION;');
+                output.push('SET standard_conforming_strings=off;');
+                output.push('SET escape_string_warning=off;');
+                output.push('SET CONSTRAINTS ALL DEFERRED;');
+                output.push('');
+
+                for (let line of lines) {
+                    line = line.trim();
+
+                    // Skip comments and locks
+                    if (line.startsWith('--') || line.startsWith('/*') ||
+                        line.startsWith('LOCK TABLES') || line.startsWith('DROP TABLE') ||
+                        line.startsWith('UNLOCK TABLES') || !line) {
+                        continue;
+                    }
+
+                    // Handle CREATE TABLE
+                    if (line.includes('CREATE TABLE')) {
+                        currentTable = this.extractTableName(line);
+                        this.stats.tables++;
+                        let convertedLine = line
+                            .replace(/`/g, '"')
+                            .replace(/ENGINE=[^\s;]+/gi, '')
+                            .replace(/DEFAULT CHARSET=[^\s;]+/gi, '')
+                            .replace(/COLLATE=[^\s;]+/gi, '')
+                            .replace(/AUTO_INCREMENT=[^\s;]+/gi, '')
+                            .replace(/COMMENT=['"][^'"]*['"]/gi, '')
+                            .replace(/ROW_FORMAT=[^\s;]+/gi, '')
+                            .replace(/KEY [^,]+/gi, '') // <-- ลบ KEY ของ MySQL ออก
+                            .trim();
+                        output.push(convertedLine);
+                        continue;
+                    }
+
+                    // Handle column definitions
+                    if (currentTable && line.includes('`')) {
+                        let convertedLine = this.convertColumnDefinition(line, currentTable, enumTypes, sequences);
+                        if (convertedLine) {
+                            output.push(convertedLine);
+                            this.stats.columns++;
+                        }
+                        continue;
+                    }
+
+                    // Handle constraints and indexes
+                    if (currentTable) {
+                        if (line.includes('PRIMARY KEY')) {
+                            output.push(line.replace(/`/g, '"'));
+                            this.stats.constraints++;
+                        } else if (line.includes('FOREIGN KEY')) {
+                            foreignKeys.push(this.convertForeignKey(line, currentTable));
+                            this.stats.constraints++;
+                        } else if (line.includes('KEY') && !line.includes('PRIMARY KEY') && !line.includes('FOREIGN KEY')) {
+                            // แทนที่จะ push KEY ของ MySQL, แปลงเป็น CREATE INDEX
+                            indexes.push(this.convertIndex(line, currentTable));
+                            this.stats.indexes++;
+                        } else if (line === ');' || line.includes(') ENGINE=') || line.includes(') DEFAULT CHARSET=') || line === ')') {
+                            let cleanLine = line
+                                .replace(/,(\s*\);?)/, '$1') // ลบ comma สุดท้าย
+                                .replace(/ENGINE=[^\s;]+/gi, '')
+                                .replace(/DEFAULT CHARSET=[^\s;]+/gi, '')
+                                .replace(/COLLATE=[^\s;]+/gi, '')
+                                .replace(/AUTO_INCREMENT=[^\s;]+/gi, '')
+                                .replace(/COMMENT=['"][^'"]*['"]/gi, '')
+                                .replace(/ROW_FORMAT=[^\s;]+/gi, '')
+                                .trim();
+
+                            // ✅ บังคับปิดให้เหลือแค่ );
+                            cleanLine = cleanLine.replace(/\)+\s*;*$/, ');');
+
+                            output.push(cleanLine);
+                            output.push('');
+                            currentTable = null;
+                        }
+                        else {
+                            // 🆕 ตัด KEY ที่ยังเล็ดลอด
+
+                            if (line.trim().toUpperCase().startsWith("KEY") || line.trim().toUpperCase().startsWith("UNIQUE KEY ")) {
+                                continue;
+                            }
+
+                            output.push(line);
+                        }
+                    } else {
+                        // Handle INSERT statements
+                        if (line.includes('INSERT INTO')) {
+                            let convertedLine = line
+                                .replace(/`/g, '"')
+                                .replace(/'0000-00-00 00:00:00'/g, 'NULL')
+                                .replace(/'0000-00-00'/g, 'NULL');
+                            output.push(convertedLine);
+                        } else {
+                            output.push(line);
+                        }
+                    }
+                }
+
+                // Add enum types
+                if (enumTypes.length > 0) {
+                    output.push('-- Enum types');
+                    output.push(...enumTypes);
+                    output.push('');
+                }
+
+                // Add sequences
+                if (sequences.length > 0) {
+                    output.push('-- Sequences');
+                    output.push(...sequences);
+                    output.push('');
+                }
+
+                // Add foreign keys
+                if (foreignKeys.length > 0) {
+                    output.push('-- Foreign keys');
+                    output.push(...foreignKeys);
+                    output.push('');
+                }
+
+                // Add indexes
+                if (indexes.length > 0) {
+                    output.push('-- Indexes');
+                    output.push(...indexes);
+                    output.push('');
+                }
+
+                output.push('COMMIT;');
+
+                return output.join('\n');
+            }
+
+
+            convertPostgreSQLToMySQL(sql) {
+                this.resetStats();
+                let output = [];
+                let lines = sql.split('\n');
+
+                // Header
+                output.push('-- Converted by Database Converter');
+                output.push('SET FOREIGN_KEY_CHECKS = 0;');
+                output.push('SET sql_mode = "NO_AUTO_VALUE_ON_ZERO";');
+                output.push('SET AUTOCOMMIT = 0;');
+                output.push('START TRANSACTION;');
+                output.push('SET time_zone = "+00:00";');
+                output.push('');
+
+                for (let line of lines) {
+                    line = line.trim();
+
+                    // Skip PostgreSQL specific commands
+                    if (line.startsWith('START TRANSACTION') || line.startsWith('COMMIT') ||
+                        line.includes('standard_conforming_strings') ||
+                        line.includes('escape_string_warning') ||
+                        line.includes('CONSTRAINTS ALL DEFERRED') ||
+                        line.includes('CREATE TYPE') ||
+                        line.includes('CREATE SEQUENCE') ||
+                        line.includes('setval(')) {
+                        continue;
+                    }
+
+                    // Convert CREATE TABLE
+                    if (line.includes('CREATE TABLE')) {
+                        this.stats.tables++;
+                        let convertedLine = line.replace(/"/g, '`');
+                        output.push(convertedLine);
+                        continue;
+                    }
+
+                    // Convert data types
+                    if (line.includes('serial') || line.includes('bigserial')) {
+                        let convertedLine = line
+                            .replace(/"/g, '`')
+                            .replace(/serial/g, 'INT AUTO_INCREMENT')
+                            .replace(/bigserial/g, 'BIGINT AUTO_INCREMENT')
+                            .replace(/timestamp with time zone/g, 'DATETIME')
+                            .replace(/timestamp without time zone/g, 'DATETIME')
+                            .replace(/boolean/g, 'TINYINT(1)')
+                            .replace(/text/g, 'TEXT')
+                            .replace(/bytea/g, 'LONGBLOB');
+                        output.push(convertedLine);
+                        this.stats.columns++;
+                        continue;
+                    }
+
+                    // General conversions
+                    let convertedLine = line
+                        .replace(/"/g, '`')
+                        .replace(/timestamp with time zone/g, 'DATETIME')
+                        .replace(/timestamp without time zone/g, 'DATETIME')
+                        .replace(/boolean/g, 'TINYINT(1)')
+                        .replace(/bytea/g, 'LONGBLOB')
+                        .replace(/integer/g, 'INT')
+                        .replace(/bigint/g, 'BIGINT')
+                        .replace(/smallint/g, 'SMALLINT');
+
+                    // Count elements
+                    if (line.includes('PRIMARY KEY') || line.includes('FOREIGN KEY') || line.includes('UNIQUE')) {
+                        this.stats.constraints++;
+                    }
+                    if (line.includes('CREATE INDEX')) {
+                        this.stats.indexes++;
+                        // Skip PostgreSQL indexes that don't translate well
+                        if (line.includes('gin(') || line.includes('gist(')) {
+                            continue;
+                        }
+                        convertedLine = convertedLine.replace(/USING \w+/gi, '');
+                    }
+                    if (line.includes('`') && !line.includes('CREATE') && !line.includes('INSERT')) {
+                        this.stats.columns++;
+                    }
+
+                    // Handle table closing with ENGINE
+                    if (convertedLine === ');') {
+                        convertedLine = ') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;';
+                    }
+
+                    output.push(convertedLine);
+                }
+
+                output.push('');
+                output.push('COMMIT;');
+                output.push('SET FOREIGN_KEY_CHECKS = 1;');
+
+                return output.join('\n');
+            }
+
+            convertColumnDefinition(line, tableName, enumTypes, sequences) {
+                let converted = line.replace(/`/g, '"');
+
+                // Handle AUTO_INCREMENT first (before other type conversions)
+                if (converted.includes('AUTO_INCREMENT')) {
+                    // Convert INTEGER AUTO_INCREMENT to SERIAL
+                    if (converted.match(/int[^,\s]*\s+NOT NULL\s+AUTO_INCREMENT/gi)) {
+                        converted = converted.replace(/int[^,\s]*\s+NOT NULL\s+AUTO_INCREMENT/gi, 'SERIAL');
+                    }
+                    // Convert BIGINT AUTO_INCREMENT to BIGSERIAL  
+                    else if (converted.match(/bigint[^,\s]*\s+NOT NULL\s+AUTO_INCREMENT/gi)) {
+                        converted = converted.replace(/bigint[^,\s]*\s+NOT NULL\s+AUTO_INCREMENT/gi, 'BIGSERIAL');
+                    }
+                    // Handle cases without NOT NULL
+                    else if (converted.match(/int[^,\s]*\s+AUTO_INCREMENT/gi)) {
+                        converted = converted.replace(/int[^,\s]*\s+AUTO_INCREMENT/gi, 'SERIAL');
+                    }
+                    else if (converted.match(/bigint[^,\s]*\s+AUTO_INCREMENT/gi)) {
+                        converted = converted.replace(/bigint[^,\s]*\s+AUTO_INCREMENT/gi, 'BIGSERIAL');
+                    }
+                    // Fallback - remove AUTO_INCREMENT and create sequence
+                    else {
+                        converted = converted.replace(/AUTO_INCREMENT/gi, '');
+                        let columnName = converted.split('"')[1];
+                        sequences.push(`CREATE SEQUENCE "${tableName}_${columnName}_seq";`);
+                        sequences.push(`ALTER TABLE "${tableName}" ALTER COLUMN "${columnName}" SET DEFAULT nextval('"${tableName}_${columnName}_seq"');`);
+                        sequences.push(`ALTER SEQUENCE "${tableName}_${columnName}_seq" OWNED BY "${tableName}"."${columnName}";`);
+                    }
+                }
+
+                // Convert other data types
+                converted = converted
+                    .replace(/\bint\b/gi, 'INTEGER')  // ใช้ \b เพื่อ match whole word
+                    .replace(/bigint/gi, 'BIGINT')
+                    .replace(/smallint/gi, 'SMALLINT')
+                    .replace(/tinyint\(1\)/gi, 'BOOLEAN')
+                    .replace(/tinyint/gi, 'SMALLINT')
+                    .replace(/tinytext/gi, 'TEXT')
+                    .replace(/mediumtext/gi, 'TEXT')
+                    .replace(/longtext/gi, 'TEXT')
+                    .replace(/\btext\b/gi, 'TEXT')  // ใช้ \b เพื่อไม่ให้แปลง tinytext ซ้ำ
+                    .replace(/varchar\((\d+)\)/gi, (match, size) => `VARCHAR(${parseInt(size)})`)
+                    .replace(/datetime/gi, 'TIMESTAMP')
+                    .replace(/timestamp/gi, 'TIMESTAMP')
+                    .replace(/\bfloat\b/gi, 'NUMERIC')  // เปลี่ยนจาก REAL เป็น NUMERIC สำหรับเงิน
+                    .replace(/double/gi, 'DOUBLE PRECISION')
+                    .replace(/\w*blob/gi, 'BYTEA');
+
+                // Handle ENUM types
+                if (converted.includes('enum(')) {
+                    let enumMatch = converted.match(/enum\((.*?)\)/i);
+                    if (enumMatch) {
+                        let columnName = converted.split('"')[1];
+                        let enumName = `${tableName}_${columnName}_enum`;
+                        let enumValues = enumMatch[1];
+
+                        enumTypes.push(`CREATE TYPE ${enumName} AS ENUM (${enumValues});`);
+                        converted = converted.replace(/enum\(.*?\)/i, enumName);
+                    }
+                }
+
+                // Remove MySQL specific clauses
+                converted = converted
+                    .replace(/CHARACTER SET [^\s,)]+/gi, '')
+                    .replace(/COLLATE [^\s,)]+/gi, '')
+                    .replace(/COMMENT ['"][^'"]*['"]/gi, '')
+                    .replace(/unsigned/gi, '')
+                    .replace(/UNIQUE KEY/gi, 'UNIQUE')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+
+                return converted;
+            }
+
+            convertForeignKey(line, tableName) {
+                let converted = line.replace(/`/g, '"');
+                return `ALTER TABLE "${tableName}" ADD ${converted.replace(',', '')} DEFERRABLE INITIALLY DEFERRED;`;
+            }
+
+            convertIndex(line, tableName) {
+                let indexMatch = line.match(/KEY `(.*?)`\s*\((.*?)\)/);
+                if (indexMatch) {
+                    let indexName = indexMatch[1];
+                    let columns = indexMatch[2].replace(/`/g, '"');
+                    return `CREATE INDEX ${indexName} ON "${tableName}" (${columns});`;
+                }
+                return line;
+            }
+
+            extractTableName(line) {
+                let match = line.match(/CREATE TABLE [`"]([^`"]+)[`"]/);
+                return match ? match[1] : 'unknown';
+            }
+
+            resetStats() {
+                this.stats = { tables: 0, columns: 0, indexes: 0, constraints: 0 };
+            }
+
+            updateStats() {
+                document.getElementById('tableCount').textContent = this.stats.tables;
+                document.getElementById('columnCount').textContent = this.stats.columns;
+                document.getElementById('indexCount').textContent = this.stats.indexes;
+                document.getElementById('constraintCount').textContent = this.stats.constraints;
+            }
+
+            showLoading(show) {
+                const btn = document.getElementById('convertBtn');
+                btn.classList.toggle('loading', show);
+                btn.disabled = show;
+            }
+
+            showError(message) {
+                const errorEl = document.getElementById('inputError');
+                errorEl.textContent = message;
+                errorEl.style.display = 'block';
+            }
+
+            hideError() {
+                document.getElementById('inputError').style.display = 'none';
+            }
+        }
+
+        // Initialize the converter
+        new DatabaseConverter();
+    </script>
+</body>
+
+</html>
